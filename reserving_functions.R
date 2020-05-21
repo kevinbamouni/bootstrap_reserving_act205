@@ -128,3 +128,15 @@ psp_phi <-  function(triangle_upr){
   
   return(sum(triangle_upr^2, na.rm = TRUE)/(0.5*I(I+1)-2*I+1))
 }
+
+
+##################################################################################
+# Fonction de calcul des adjust unscaled pearson residuals upr
+##################################################################################
+
+triangle_upr_adjust <- function(triangle_upr){
+  
+  I <- nrow(triangle_upr)
+  
+  return( sqrt( I / (0.5*I(I+1)-2*I+1) ) * triangle_upr)
+}
