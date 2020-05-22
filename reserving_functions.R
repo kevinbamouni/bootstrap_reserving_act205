@@ -61,27 +61,31 @@ bootstrap_cl_reserving <- function(triangle, type, number_of_simul){
   # Estimation du triangle supérieur des cumuls à partir des coef de developpement de chain ladder
   est_cumul_past_triangle <- triangle_sup_cumul_estimation(triangle_cumulatif, coefficients_de_dev_CL)
   
-  # Estimation du triangle du triangle supérieur des incrément à partir du triangle des cumuls de l'étape précédente
+  # Estimation des incréments à partir du triangle des cumuls de l'étape précédente
   est_incre_past_triangle <- triangle_sup_increment_from_cumuls(est_cumul_past_triangle)
   
-  # Calcul des unscaled perason residuals
+  # Calcul du triangle unscaled perason residuals
   uns_pear_res <- triangle_upr(triangle, est_incre_past_triangle)
   
   # Calcul du pearson scale parameter phi
   phi <- psp_phi(uns_pear_res)
   
-  # Ajustement des pearson residuals
+  # calcul du triangle des adjust pearson residuals
   adj_uns_pear_res <- triangle_upr_adjust(uns_pear_res)
   
   #Iterative loop
+  reserve_total_cl <- c() #stockage des provision totales pour chaque simulation de bootstrap
+  proj_matrix <- array(NA,dim = c(I,J,number_of_simul)) #stockage des matrices incréments futures estimées par chain ladder pour chaque simulation de bootstrap
   
   for (l in 1:number_of_simul) {
-    triangle_apr_resampled <- triangle_sup_by_resample(adj_uns_pear_res, replacement = TRUE)
-    triangle_sup_incr_resampled <- triangle_apr_resampled * sqrt(est_incre_past_triangle) + est_incre_past_triangle
-    bootstrapcl <- chainLadder_reserving(triangle = triangle_sup_incr_resampled, type = "increment" )
+    triangle_apr_resampled <- triangle_sup_by_resample(adj_uns_pear_res, replacement = TRUE) #Rééchantillonnage du triangle des adjust pearson residus
+    triangle_sup_incr_resampled <- triangle_apr_resampled * sqrt(est_incre_past_triangle) + est_incre_past_triangle #calcul du triangle supérieur d'incréments correstpondant 
+    bootstrapcl <- chainLadder_reserving(triangle = triangle_sup_incr_resampled, type = "increment" ) #Application de chain ladder sur le triangle calculé à l'étape précédente
+    proj_matrix[,,l] <- triangle_sup_increment_from_cumuls(bootstrapcl[[5]]) #stockage de la matrice des incréments obtenues à partir de la matrice complètée des cumuls estimées par chain ladder
+    reserve_total_cl <- c(reserve_total_cl, bootstrapcl[[7]]) #stockage de la provision totale estimée par chain ladder
   }
   
-  result_list <- list(coefficients_de_dev_CL, est_cumul_past_triangle, est_incre_past_triangle, uns_pear_res, phi, adj_uns_pear_res, bootstrapcl)
+  result_list <- list(coefficients_de_dev_CL, est_cumul_past_triangle, est_incre_past_triangle, uns_pear_res, phi, adj_uns_pear_res, proj_matrix, reserve_total_cl)
   
   return(result_list)
 }
@@ -106,7 +110,6 @@ calcul_coef_de_dev_CL <- function(triangle_des_cumuls){
 ##################################################################################
 # Fonction d'estimation de la partie inferieure du triangle
 ##################################################################################
-
 triangle_inf_estimation <- function(triangle_cumule, coef_de_dev){
   
   I <- nrow(triangle_cumule)
@@ -191,7 +194,7 @@ triangle_upr_adjust <- function(triangle_upr){
 }
 
 ##################################################################################
-# Fonction de calcul d'un triangle supérieur par rééchantillonage avec remise
+# Fonction de création d'un triangle supérieur par rééchantillonage avec remise
 ##################################################################################
 triangle_sup_by_resample <- function(triangle_sup_des_residus, replacement){
   
