@@ -1,21 +1,24 @@
 library(matrixStats)
 
 
-
-# Fonction de calcul de reserving par Chain ladder
+# Fonction de calcul des provisions par la méthode de Chain ladder.
+# Input : triangle, triangle des incréments, avec les années de survenance en ligne et les annees de developpement en colonnes
+# Output: une liste de résultats
+# 1 : triangle des incréments en input
+# 2 : triangle des paiements cumulés calculée à partir dur triangle des incréments
+# 3 : Coeffiscients de developpement
+# 4 : Matrice, avec triangle inférieur des paiements cumulés estimé
+# 5 : Vecteur des provision à consituer par année de survenance
+# 6 : Provision totale à consituer, selon m
 chainLadder_reserving <- function(triangle){
   
-  # Récupération du nombre de lignes et du nombre de colonne du triangle
   I <- nrow(triangle)
   J <- ncol(triangle)
   
-  # Calcul de la matrice des paiements cumulatifs en fonction du type de la matrice d'entrée : cumuls ou incréments
-    triangle_cumulatif <- rowCumsums(data.matrix(triangle))
+  triangle_cumulatif <- rowCumsums(data.matrix(triangle))
   
-  # Calcul des coeffiscients de developpements de Chain Ladder
   coefficients_de_dev_CL <- calcul_coef_de_dev_CL(triangle_cumulatif)
   
-  # Matrice complete avec l'estimation de la partie inférieure avec les coeffiscients de developpement
   matrice_estimee = triangle_inf_estimation(triangle_cumulatif, coefficients_de_dev_CL)
   
   reserving_par_an = reserving_est_par_an(matrice_estimee)
@@ -30,60 +33,54 @@ chainLadder_reserving <- function(triangle){
 
 
 # Fonction de calcul de reserving par bootstrap (chain ladder)
+# Input 1 (triangle) : triangle, triangle des incréments, avec les années de survenance en ligne et les annees de developpement en colonnes
+# Input 2 (number_of_simul) : Nombre de simulation bootstrap à exécuter 
+# 1 : Coeffiscientde de developpement de chain ladder
+# 2 : Triangle des paiements cumulés calculée à partir dur triangle des incréments
+# 3 : Triangle supérieur des incréments réestimés
+# 4 : Triangle des Unscaled Pearson residuals
+# 5 : Phi Pearson Scale Parameter
+# 6 : Triangle des Adjust Unscaled Pearson residuals
+# 7 : Matrices en 3D contenant les reserves par an à effectuer estimées pour chaque simulation bootsratp
+# 8 : Reserve totale à effectuer pour chaque simulation
 bootstrap_cl_reserving <- function(triangle, number_of_simul){
   
-  # Récupération du nombre de lignes et du nombre de colonne du triangle
   I <- nrow(triangle)
   J <- ncol(triangle)
   
-  # Calcul de la matrice des paiements cumulatifs en fonction du type de la matrice d'entrée : cumuls ou incréments
     triangle_cumulatif <- rowCumsums(data.matrix(triangle))
   
   #----------   Algorithme de boostrap décrite dans   ----------
   
-  # Calcul des coeffiscients de developpements de Chain Ladder
   coefficients_de_dev_CL <- calcul_coef_de_dev_CL(triangle_cumulatif)
   
-  # Estimation du triangle supérieur des cumuls à partir des coef de developpement de chain ladder
   est_cumul_past_triangle <- triangle_sup_cumul_estimation(triangle_cumulatif, coefficients_de_dev_CL)
   
-  # Estimation des incréments à partir du triangle des cumuls de l'étape précédente
   est_incre_past_triangle <- triangle_sup_increment_from_cumuls(est_cumul_past_triangle)
   
-  # Calcul du triangle unscaled perason residuals
   uns_pear_res <- triangle_upr(triangle, est_incre_past_triangle)
   
-  # Calcul du pearson scale parameter phi
   phi_c <- psp_phi(uns_pear_res)
   
-  # calcul du triangle des adjust pearson residuals
   adj_uns_pear_res <- triangle_upr_adjust(uns_pear_res)
   
-  #Iterative loop
-  reserve_total_cl <- c() #stockage des provision totales pour chaque simulation de bootstrap
-  proj_matrix <- array(NA,dim = c(I,1,number_of_simul)) #stockage des matrices incréments futures estimées par chain ladder pour chaque simulation de bootstrap
+  reserve_total_cl <- c() 
+  proj_matrix <- array(NA,dim = c(I,1,number_of_simul))
   
   for (l in 1:number_of_simul) {
     
-    #Rééchantillonnage du triangle des adjust pearson residus
     triangle_apr_resampled <- triangle_sup_by_resample(adj_uns_pear_res, replacement = TRUE)
     
-    #calcul du triangle supérieur d'incréments correstpondant 
     triangle_sup_incr_resampled <- triangle_apr_resampled * sqrt(est_incre_past_triangle) + est_incre_past_triangle
     
-    #Application de chain ladder sur le triangle calculé à l'étape précédente
     bootstrapcl <- chainLadder_reserving(triangle = triangle_sup_incr_resampled)
     
-    #stockage de la matrice des incréments obtenues à partir de la matrice complètée des cumuls estimées par chain ladder
     mat_toto <- triangle_sup_increment_from_cumuls(bootstrapcl[[4]])
     
-    #reechantillonnage du triangle inferieur suivant une loi normale
     mat_toto <- triangle_inf_sample_norm(mat_toto, phi_c)
     
-    #Calcul des reserves par annee de survenance
     proj_matrix[,,l] <- reserving_est_par_an(rowCumsums(mat_toto))
     
-    #stockage de la provision totale estimée par chain ladder
     reserve_total_cl <- c(reserve_total_cl, sum(proj_matrix[,,l]))
     
   }
@@ -96,6 +93,8 @@ bootstrap_cl_reserving <- function(triangle, number_of_simul){
 
 
 # Fonction de calcul des coeffisicients de developpement de Chain Ladder
+# Input : triangle supérieur des paiements cumulés 
+# Output : vecteur des coeffiscients de developpement selon la méthode chain ladder
 calcul_coef_de_dev_CL <- function(triangle_des_cumuls){
   
   I <- nrow(triangle_des_cumuls)
@@ -110,6 +109,9 @@ calcul_coef_de_dev_CL <- function(triangle_des_cumuls){
 
 
 # Fonction d'estimation de la partie inferieure du triangle
+# Input 1 (triangle_cumule) : triangle supérieur des paiements cumulés
+# Input 2 (coef_de_dev) : vecteur Coeffiscients de developpement de chain ladder
+# Output : Matrice avec triangle inférieur des paiements cumulés en ligne estimée selon chain ladder
 triangle_inf_estimation <- function(triangle_cumule, coef_de_dev){
   
   I <- nrow(triangle_cumule)
@@ -127,6 +129,8 @@ triangle_inf_estimation <- function(triangle_cumule, coef_de_dev){
 
 
 # Fonction d'estimation des provisions à effectuer par année d'occurrence
+# Input 1 (matrice_cumulative_estimee) : Matrice complete des paiements cumulés en lignes.
+# Output : Vecteur des provisions à consituer par année de survenance
 reserving_est_par_an <- function(matrice_cumulative_estimee){
   I <- nrow(matrice_cumulative_estimee)
   J <- ncol(matrice_cumulative_estimee)
@@ -136,7 +140,10 @@ reserving_est_par_an <- function(matrice_cumulative_estimee){
 
 
 
-# Fonction d'estimation de la partie superieure du triangle des cumuls
+# Fonction d'estimation de la partie superieure du triangle des cumuls à l'aide des coeffiscients de developpements de chain ladder
+# Input 1 (triangle_cumule) : Triangle supérieur des paiments cumulés réels en ligne
+# Input 2 (coef_de_dev) : coeffiscients de developpement de chain ladder
+# Output : triangle supérieur des paiements cumulés estimés
 triangle_sup_cumul_estimation <- function(triangle_cumule, coef_de_dev){
   
   I <- nrow(triangle_cumule)
@@ -153,7 +160,9 @@ triangle_sup_cumul_estimation <- function(triangle_cumule, coef_de_dev){
 
 
 
-# Fonction de calcul du triangle des incréments à partir du triangle des cumuls.
+# Fonction de calcul par différenciation du triangle des incréments à partir du triangle des paiements cumulés.
+# Input : Triangle supérieur des paiements cumulés en ligne
+# Output : Triangle supérieur des incréments correspondant
 triangle_sup_increment_from_cumuls <- function(triangle_cumule){
   
   return(cbind(triangle_cumule[,1],rowDiffs(triangle_cumule)))
@@ -162,6 +171,9 @@ triangle_sup_increment_from_cumuls <- function(triangle_cumule){
 
 
 # Fonction de calcul des unscaled pearson residuals upr
+# Input 1 (triangle_inc) : Triangle supérieur des incréments réels
+# Input 2 (triangle_inc_est) : Triangle supérieur des incréments réestimés
+# Output : Triangle supérieur des Unscaled Pearson Résiduals
 triangle_upr <- function(triangle_inc, triangle_inc_est){
   
   return((triangle_inc - triangle_inc_est) / sqrt(triangle_inc_est))
@@ -170,6 +182,8 @@ triangle_upr <- function(triangle_inc, triangle_inc_est){
 
 
 # Fonction de calcul pearson scale parameter phi psp_phi
+# Input 1 (triangle) : triangle supérieur des Unscaled Pearson Résiduals
+# Output : Pearson Scale Parameter 
 psp_phi <-  function(triangle){
   
   I <- nrow(triangle)
@@ -179,7 +193,9 @@ psp_phi <-  function(triangle){
 
 
 
-# Fonction de calcul des adjust unscaled pearson residuals upr
+# Fonction de calcul des Adjust Unscaled Pearson Résiduals AUPR
+# Input 1 (triangle) : triangle supérieur des Unscaled Pearson Résiduals
+# Output : triangle supérieur des Adjust Unscaled Pearson Résiduals
 triangle_upr_adjust <- function(triangle){
   
   I <- nrow(triangle)
@@ -190,6 +206,9 @@ triangle_upr_adjust <- function(triangle){
 
 
 # Fonction de création d'un triangle supérieur par rééchantillonage avec remise
+# Input 1 (triangle_sup_des_residus) : Triangle supérieur des résidus
+# Input 2 (replacement) : Type du tirage à effectuer
+# Output : Triangle Input 1 rééchantillonné avec ou sans remise
 triangle_sup_by_resample <- function(triangle_sup_des_residus, replacement){
   
   I <- nrow(triangle_sup_des_residus)
@@ -207,6 +226,9 @@ triangle_sup_by_resample <- function(triangle_sup_des_residus, replacement){
 
 
 # Fonction de rééchantillonnage du triangle inférieur suivant une loi normale
+# Input 1 (triangle_inf) : Triangle inférieur des incréments
+# Input 2 (phi) : Type du tirage à effectuer
+# Output : rééchantillonnage de chaque élément C(i,j) de Input 1 suivant une loi normale de moyenne C(j,j) et variance phi*C(i,j)
 triangle_inf_sample_norm <- function(triangle_inf, phi){
   
   I <- nrow(triangle_inf)
@@ -221,9 +243,4 @@ triangle_inf_sample_norm <- function(triangle_inf, phi){
   
   return(triangle_inf)
 }
-
-
-
-# calcul des provisions par années
-
 
