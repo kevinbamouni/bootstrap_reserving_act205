@@ -1,23 +1,16 @@
-library(tidyverse)
 library(matrixStats)
 
 
 
 # Fonction de calcul de reserving par Chain ladder
-chainLadder_reserving <- function(triangle, type){
+chainLadder_reserving <- function(triangle){
   
   # Récupération du nombre de lignes et du nombre de colonne du triangle
   I <- nrow(triangle)
   J <- ncol(triangle)
   
   # Calcul de la matrice des paiements cumulatifs en fonction du type de la matrice d'entrée : cumuls ou incréments
-  if (type == "increment") {
     triangle_cumulatif <- rowCumsums(data.matrix(triangle))
-  } 
-  
-  if (type == "cumulative"){
-    triangle_cumulatif <- data.matrix(triangle)
-  }
   
   # Calcul des coeffiscients de developpements de Chain Ladder
   coefficients_de_dev_CL <- calcul_coef_de_dev_CL(triangle_cumulatif)
@@ -29,7 +22,7 @@ chainLadder_reserving <- function(triangle, type){
   
   reserving_total_CL = sum(reserving_par_an)
   
-  result_list <- list(triangle, type, triangle_cumulatif, coefficients_de_dev_CL, matrice_estimee, reserving_par_an, reserving_total_CL)
+  result_list <- list(triangle, triangle_cumulatif, coefficients_de_dev_CL, matrice_estimee, reserving_par_an, reserving_total_CL)
   
   return(result_list)
 }
@@ -37,20 +30,14 @@ chainLadder_reserving <- function(triangle, type){
 
 
 # Fonction de calcul de reserving par bootstrap (chain ladder)
-bootstrap_cl_reserving <- function(triangle, type, number_of_simul){
+bootstrap_cl_reserving <- function(triangle, number_of_simul){
   
   # Récupération du nombre de lignes et du nombre de colonne du triangle
   I <- nrow(triangle)
   J <- ncol(triangle)
   
   # Calcul de la matrice des paiements cumulatifs en fonction du type de la matrice d'entrée : cumuls ou incréments
-  if (type == "increment") {
     triangle_cumulatif <- rowCumsums(data.matrix(triangle))
-  } 
-  
-  if (type == "cumulative"){
-    triangle_cumulatif <- data.matrix(triangle)
-  }
   
   #----------   Algorithme de boostrap décrite dans   ----------
   
@@ -85,10 +72,10 @@ bootstrap_cl_reserving <- function(triangle, type, number_of_simul){
     triangle_sup_incr_resampled <- triangle_apr_resampled * sqrt(est_incre_past_triangle) + est_incre_past_triangle
     
     #Application de chain ladder sur le triangle calculé à l'étape précédente
-    bootstrapcl <- chainLadder_reserving(triangle = triangle_sup_incr_resampled, type = "increment" )
+    bootstrapcl <- chainLadder_reserving(triangle = triangle_sup_incr_resampled)
     
     #stockage de la matrice des incréments obtenues à partir de la matrice complètée des cumuls estimées par chain ladder
-    mat_toto <- triangle_sup_increment_from_cumuls(bootstrapcl[[5]])
+    mat_toto <- triangle_sup_increment_from_cumuls(bootstrapcl[[4]])
     
     #reechantillonnage du triangle inferieur suivant une loi normale
     mat_toto <- triangle_inf_sample_norm(mat_toto, phi_c)
