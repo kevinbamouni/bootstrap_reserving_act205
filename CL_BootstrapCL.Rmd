@@ -1,0 +1,70 @@
+---
+title: "Chain Ladder et Bootstrap Chain ladder"
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+    highlight: tango
+    df_print: kable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Chain Ladder
+
+
+## Chargement des données Inputs, fonctions et triangle des incréments.
+
+```{r inputdata}
+source("reserving_functions.R")
+payments <- read.csv(file = "triangles_input/triangle_theorique.csv", sep = ";", header = FALSE)
+data.frame(payments)
+```
+
+
+## Implémentation de la méthode du bootstrap en utilisant la fonction developpée et importée :
+
+```{r}
+implem_theorique <-  chainLadder_reserving(triangle = payments)
+```
+
+\newpage
+### Triangle des paiements cumulés calculée à partir dur triangle des incréments
+
+```{r}
+data.frame(implem_theorique[[2]])
+```
+
+
+### Coeffiscients de developpement
+
+```{r}
+implem_theorique[[3]]
+```
+
+
+### Matrice, avec triangle inférieur des paiements cumulés estimé
+
+```{r}
+data.frame(implem_theorique[[4]])
+```
+
+\newpage
+### Vecteur des provision à consituer par année de survenance
+
+```{r}
+implem_theorique[[5]]
+```
+
+
+### Provision totale à consituer selon Chain Ladder
+
+```{r}
+implem_theorique[[6]]
+```
+
+
+# Bootstrap Chain Ladder
