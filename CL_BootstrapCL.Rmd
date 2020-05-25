@@ -18,14 +18,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Chargement des données Inputs, fonctions et triangle des incréments.
 
-```{r inputdata}
+```{r}
 source("reserving_functions.R")
 payments <- read.csv(file = "triangles_input/triangle_theorique.csv", sep = ";", header = FALSE)
 data.frame(payments)
 ```
 
 
-## Implémentation de la méthode du bootstrap en utilisant la fonction developpée et importée :
+## Implémentation de la méthode de Chain Ladder en utilisant la fonction developpée et importée :
 
 ```{r}
 implem_theorique <-  chainLadder_reserving(triangle = payments)
@@ -68,3 +68,41 @@ implem_theorique[[6]]
 
 
 # Bootstrap Chain Ladder
+
+
+## Chargement des données Inputs, fonctions et triangle des incréments.
+
+```{r}
+source("reserving_functions.R")
+payments <- read.csv(file = "triangles_input/triangle_theorique.csv", sep = ";", header = FALSE)
+data.frame(payments)
+```
+
+
+## Implémentation de la méthode du bootstrap en utilisant la fonction developpée et importée :
+
+```{r}
+N = 1000
+implem_theorique_bootstrap <- bootstrap_cl_reserving(triangle = payments, number_of_simul = N)
+```
+
+### Coeffiscients de developpement de Chain Ladder
+
+```{r}
+implem_theorique_bootstrap[[1]]
+```
+
+```{r}
+rowMeans(implem_theorique_bootstrap[[7]][1:10,1,1:N])
+```
+```{r}
+report <- data.frame("annee"=c("year_1", "year_2", "year_3", "year_4", "year_5", "year_6", "year_7", "year_8", "year_9", "year_10"))
+report <- data.frame("annee"=c("year_1", "year_2", "year_3", "year_4", "year_5", "year_6", "year_7", "year_8", "year_9", "year_10"))
+report$chain_ladder <- implem_theorique[[5]]
+report$bootstrap_mean <- rowMeans(implem_theorique_bootstrap[[7]][1:10,1,1:N])
+report$bootstrap_standard_dev <- rowSds(implem_theorique_bootstrap[[7]][1:10,1,1:N]) # bootstrap ecart type
+report$bootstrap_rmse <- sqrt(rowMeans((implem_theorique[[5]] - implem_theorique_bootstrap[[7]][1:10,1,1:N])^2)) #bootstrap erreur quadratique moyenne
+report
+```
+
+
