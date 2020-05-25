@@ -19,9 +19,9 @@ chainLadder_reserving <- function(triangle){
   
   coefficients_de_dev_CL <- calcul_coef_de_dev_CL(triangle_cumulatif)
   
-  matrice_estimee = triangle_inf_estimation(triangle_cumulatif, coefficients_de_dev_CL)
+  matrice_estimee = round(triangle_inf_estimation(triangle_cumulatif, coefficients_de_dev_CL))
   
-  reserving_par_an = reserving_est_par_an(matrice_estimee)
+  reserving_par_an = round(reserving_est_par_an(matrice_estimee))
   
   reserving_total_CL = sum(reserving_par_an)
   
