@@ -43,6 +43,8 @@ chainLadder_reserving <- function(triangle){
 # 6 : Triangle des Adjust Unscaled Pearson residuals
 # 7 : Matrices en 3D contenant les reserves par an à effectuer estimées pour chaque simulation bootsratp
 # 8 : Reserve totale à effectuer pour chaque simulation
+# 9 : Moyenne par année d'occurence des simulations de provisions
+# 10 : Ecart type par année d'occurence des simulations de provisions
 bootstrap_cl_reserving <- function(triangle, number_of_simul){
   
   I <- nrow(triangle)
@@ -85,7 +87,10 @@ bootstrap_cl_reserving <- function(triangle, number_of_simul){
     
   }
   
-  result_list <- list(coefficients_de_dev_CL, est_cumul_past_triangle, est_incre_past_triangle, uns_pear_res, phi_c, adj_uns_pear_res, proj_matrix, reserve_total_cl)
+  mean_proj_matrix <- rowMeans(proj_matrix[1:J,1,1:number_of_simul])
+  sd_proj_matrix <- rowSds(proj_matrix[1:J,1,1:number_of_simul])
+  
+  result_list <- list(coefficients_de_dev_CL, est_cumul_past_triangle, est_incre_past_triangle, uns_pear_res, phi_c, adj_uns_pear_res, proj_matrix, reserve_total_cl, mean_proj_matrix, sd_proj_matrix)
   
   return(result_list)
 }
@@ -222,7 +227,6 @@ triangle_sup_by_resample <- function(triangle_sup_des_residus, replacement){
   
   return(triangle_sup_des_residus)
 }
-
 
 
 # Fonction de rééchantillonnage du triangle inférieur suivant une loi normale
