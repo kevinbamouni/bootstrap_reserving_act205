@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # bootstrap_reserving_act205 (implémentation en R).
 
 ## Packages R nécéssaires
@@ -39,10 +40,8 @@ Exemple de fichier csv input:
 
 - Exécuter le fichier de code run_reserving.R
 - Exporter vers le repertoire reserving_output/ les résultats du reporting via des fichiers csv
-		
 
-
-## REFERENCE
+# REFERENCE
 
 STOCHASTIC CLAIMS RESERVING IN GENERAL INSURANCE
 By P. D. England and R. J. Verrall
